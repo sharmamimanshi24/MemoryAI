@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+google-cloud-firestore
+google-cloud-aiplatform
+vertexai
+python-dotenv
+pydantic
+httpx
