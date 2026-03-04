@@ -7,9 +7,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { themes } from "./themes"
 import Aurora from "./Aurora"
 
-const API_URL = "https://memory-ai-671546906215.us-central1.run.app"
-const USER_ID = "user_001"
-
 const glassStyle = (t) => ({
   backdropFilter: "blur(28px) saturate(180%)",
   WebkitBackdropFilter: "blur(28px) saturate(180%)",
@@ -22,6 +19,8 @@ const glassStyle = (t) => ({
 
 export default function App() {
   const [messages, setMessages] = useState([])
+  const [USER_ID, setUSER_ID] = useState(() => localStorage.getItem("memory_ai_user") || "");
+  const [userName, setUserName] = useState(() => localStorage.getItem("memory_ai_user") || "");
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [sessionId, setSessionId] = useState("session_" + Date.now())
@@ -154,6 +153,31 @@ export default function App() {
   }
   const gs = glassStyle(t)
 
+  if (!USER_ID) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0a0019" }}>
+        <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "16px", padding: "40px", display: "flex", flexDirection: "column", gap: "16px", minWidth: "300px" }}>
+          <h2 style={{ color: "white", margin: 0, fontSize: "1.4rem" }}> Welcome to Memory AI</h2>
+          <p style={{ color: "rgba(255,255,255,0.5)", margin: 0, fontSize: "0.85rem" }}>Enter your name to get started</p>
+          <input
+            autoFocus
+            placeholder="Your name..."
+            style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", color: "white", fontSize: "1rem", outline: "none" }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && e.target.value.trim()) {
+                const name = e.target.value.trim();
+                localStorage.setItem("memory_ai_user", name);
+                setUSER_ID(name);
+                setUserName(name);
+              }
+            }}
+          />
+          <p style={{ color: "rgba(255,255,255,0.3)", margin: 0, fontSize: "0.75rem" }}>Press Enter to continue</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: t.bgColor, transition: "background 0.5s ease", fontFamily: "'Inter',sans-serif" }}>
       <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 0, opacity: t.mode === 'dark' ? 0.4 : 0.2, pointerEvents: "none" }}>
@@ -252,10 +276,10 @@ export default function App() {
               </div>
 
               <div style={{ borderTop: `1px solid ${t.border}`, padding: "12px 14px", display: "flex", alignItems: "center", gap: "10px" }}>
-                <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: t.sendBtn, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", fontWeight: 700, color: "white", flexShrink: 0 }}>M</div>
+                <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: t.sendBtn, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", fontWeight: 700, color: "white", flexShrink: 0 }}>{userName.charAt(0).toUpperCase()}</div>
                 <div>
-                  <p style={{ color: t.text, fontSize: "0.77rem", fontWeight: 600, margin: 0 }}>Mimanshi</p>
-                  <p style={{ color: t.subtext, fontSize: "0.66rem", margin: 0 }}>user_001</p>
+                  <p style={{ color: t.text, fontSize: "0.77rem", fontWeight: 600, margin: 0 }}>{userName}</p>
+                  <p style={{ color: t.subtext, fontSize: "0.66rem", margin: 0 }}>{USER_ID}</p>
                 </div>
               </div>
             </motion.div>
