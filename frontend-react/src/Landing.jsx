@@ -77,7 +77,7 @@ export default function Landing() {
         {/* ── NAV ── */}
         <nav style={{ padding: "20px 5%", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100, background: currentTheme.navBg, backdropFilter: "blur(20px)", borderBottom: `1px solid ${currentTheme.navBorder}` }}>
           <div style={{ display: 'flex', gap: '16px' }}>
-            {['Features', 'Tech Stack', 'Connect'].map((item) => (
+            {['Features',   '              Connect'].map((item) => (
               <motion.button
                 key={item}
                 whileHover={{ scale: 1.05, y: -2 }}
