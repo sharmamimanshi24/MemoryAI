@@ -156,7 +156,7 @@ export default function Landing() {
               { icon: <BrainClockIcon />, title: "Cross-Session Memory", desc: "Your context never resets. It remembers projects and decisions permanently." },
               { icon: <Code />, title: "Developer First", desc: "Optimized for code. Beautiful syntax highlighting with one-click copy-paste." },
               { icon: <Search />, title: "Semantic Retrieval", desc: "Find past conversations by meaning. It understands what you meant, not just typed." },
-              { icon: <Sparkles />, title: "Thought of the Day", desc: "Start every day with fresh inspiration and technical insights fetched live." },
+              { icon: <Sparkles />, title: "Thought of the Day", desc: "Start every day with a curated thought on tech, motivation, and growth." },
               { icon: <Settings />, title: "Choose your own Theme", desc: "A clean interface with 10 dark and light themes to fit your workflow." },
               { icon: <Cloud />, title: "Cloud Integration", desc: "Built on Vertex AI for high-speed, secure, and accurate intelligence." }
             ]}

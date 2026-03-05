@@ -1,6 +1,5 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { gsap } from 'gsap'
-import { useInView } from 'react-intersection-observer'
 
 const SplitText = ({
   text,
@@ -8,66 +7,46 @@ const SplitText = ({
   delay = 50,
   duration = 1.25,
   ease = 'power3.out',
-  splitType = 'chars',
   from = { opacity: 0, y: 40 },
   to = { opacity: 1, y: 0 },
   threshold = 0.1,
-  rootMargin = '-100px',
   textAlign = 'left',
   onLetterAnimationComplete,
   showCallback = false,
 }) => {
   const containerRef = useRef(null)
-  const { ref, inView } = useInView({
-    threshold,
-    rootMargin,
-    triggerOnce: true,
-  })
+  const wrapperRef = useRef(null)
+  const [inView, setInView] = useState(false)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setInView(true) },
+      { threshold }
+    )
+    if (wrapperRef.current) observer.observe(wrapperRef.current)
+    return () => observer.disconnect()
+  }, [threshold])
 
   useEffect(() => {
     if (inView && containerRef.current) {
-      const elements = containerRef.current.children
-      gsap.to(elements, {
-        ...to,
-        duration,
-        ease,
-        stagger: delay / 1000, // GSAP stagger is in seconds
+      gsap.to(containerRef.current.children, {
+        ...to, duration, ease,
+        stagger: delay / 1000,
         onComplete: () => {
-          if (showCallback && onLetterAnimationComplete) {
-            onLetterAnimationComplete()
-          }
+          if (showCallback && onLetterAnimationComplete) onLetterAnimationComplete()
         },
       })
     }
-  }, [
-    inView,
-    to,
-    duration,
-    ease,
-    delay,
-    showCallback,
-    onLetterAnimationComplete,
-  ])
+  }, [inView, to, duration, ease, delay, showCallback, onLetterAnimationComplete])
 
-  const letters = text.split('').map((char, index) => {
-    // Use a non-breaking space to prevent layout shifts for spaces
-    const character = char === ' ' ? '\u00A0' : char
-    return (
-      <span
-        key={index}
-        style={{
-          display: 'inline-block', // Necessary for transforms
-          opacity: from.opacity,
-          transform: `translateY(${from.y}px)`,
-        }}
-      >
-        {character}
-      </span>
-    )
-  })
+  const letters = text.split('').map((char, index) => (
+    <span key={index} style={{ display: 'inline-block', opacity: from.opacity, transform: `translateY(${from.y}px)` }}>
+      {char === ' ' ? '\u00A0' : char}
+    </span>
+  ))
 
   return (
-    <div ref={ref}>
+    <div ref={wrapperRef}>
       <div ref={containerRef} className={className} style={{ textAlign }}>
         {letters}
       </div>

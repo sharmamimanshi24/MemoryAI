@@ -5,8 +5,9 @@ import { PencilIcon, Trash2Icon,Palette, MessageSquarePlus, MoreHorizontal } fro
 import { useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { themes } from "./themes"
-import Aurora from "./Aurora"
 
+import Aurora from "./Aurora"
+const API_URL = "https://memory-ai-671546906215.us-central1.run.app"
 const glassStyle = (t) => ({
   backdropFilter: "blur(28px) saturate(180%)",
   WebkitBackdropFilter: "blur(28px) saturate(180%)",
@@ -115,7 +116,7 @@ export default function App() {
   }
 
   async function sendMessage() {
-    if (!input.trim() || loading) return
+    if (!input.trim() || loading) return;
     const userMsg = input.trim()
     setInput("")
     setMessages(prev => [...prev, { role: "user", content: userMsg }])
@@ -132,14 +133,14 @@ export default function App() {
       const res = await fetch(`${API_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: USER_ID, message: userMsg, session_id: sessionId })
+        body: JSON.stringify({ user_id: USER_ID, message: userMsg, session_id: sessionId }),
       })
       const data = await res.json()
       setMessages(prev => [...prev, { role: "assistant", content: data.reply }])
       setMemoryCount(c => c + 1)
       localStorage.setItem("lastSessionId", sessionId)
     } catch {
-      setMessages(prev => [...prev, { role: "assistant", content: "Error connecting. Please try again." }])
+      setMessages(prev => [...prev, { role: "assistant", content: "Error connecting. Please try again." }]);
     }
     setLoading(false)
   }
@@ -406,7 +407,7 @@ export default function App() {
             </div>
 
             {/* Input */}
-            <div style={{ padding: "13px 16px", borderTop: `1px solid ${t.border}`, display: "flex", gap: "10px", background: t.mode === "dark" ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.35)", backdropFilter: "blur(10px)", maxWidth: "820px", width: "100%", margin: "0 auto" }}>
+            <div style={{ padding: "13px 16px", borderTop: `1px solid ${t.border}`, display: "flex", gap: "10px", background: t.mode === "dark" ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.35)", backdropFilter: "blur(10px)", maxWidth: "820px", width: "100%", margin: "0 auto", position: "relative" }}>
               <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()}
                 placeholder="Type a message..."
                 style={{ flex: 1, background: t.inputBg, backdropFilter: "blur(10px)", border: `1px solid ${t.border}`, borderRadius: "14px", padding: "12px 16px", color: t.text, fontSize: "0.9rem", outline: "none" }}

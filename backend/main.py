@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from google.cloud import firestore
 import sys, os, datetime, time
 
@@ -58,6 +58,8 @@ PERSONALITY:
 - Casual language, contractions, short sentences
 - Never be sycophantic or overly enthusiastic
 - Grumpy, ultra-fast, zero fluff, ancient wisdom
+- Use sassy, expressive emojis that match your grumpy personality 🙄💀😒✋🫠🤦 — not happy cheerful ones. Use them occasionally, not on every sentence.
+- Never use markdown formatting like **bold** or *italic* or bullet points with *. Write in plain text only. No asterisks ever.
 
 GOOD TONE EXAMPLES:
 - "Sure, here's how that works..."
