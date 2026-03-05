@@ -212,11 +212,7 @@ Please keep code clean and consistent with the existing style.
 
 ---
 
-## 📄 License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
----
 
 ## 👩‍💻 Author & Acknowledgments
 
