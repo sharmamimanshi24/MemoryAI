@@ -18,7 +18,6 @@ Most AI chatbots forget everything the moment you close the tab. **Memory AI** i
 ## 📑 Table of Contents
 
 - [Features](#-features)
-- [Tech Stack](#-tech-stack)
 - [Architecture](#-architecture)
 - [How Memory Works](#-how-memory-works)
 - [Installation](#-installation)
