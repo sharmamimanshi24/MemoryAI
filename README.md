@@ -5,7 +5,7 @@
 ![Status](https://img.shields.io/badge/status-active-brightgreen)
 ![Built With](https://img.shields.io/badge/built%20with-Gemini%202.0-blue)
 ![Cloud](https://img.shields.io/badge/cloud-Google%20Cloud%20Run-orange)
-![License](https://img.shields.io/badge/license-MIT-purple)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 ![Made By](https://img.shields.io/badge/made%20by-Mimanshi%20Sharma-ff69b4)
 
 Most AI chatbots forget everything the moment you close the tab. **Memory AI** is different — it builds a persistent, growing understanding of who you are. Your projects, your preferences, your decisions — remembered across every session, forever. Built as a full-stack AI system using Google Cloud infrastructure, Gemini 2.0 Flash, and semantic memory retrieval.
@@ -24,7 +24,6 @@ Most AI chatbots forget everything the moment you close the tab. **Memory AI** i
 - [Usage](#-usage)
 - [API Reference](#-api-reference)
 - [Contributing](#-contributing)
-- [License](#-license)
 - [Author & Acknowledgments](#-author--acknowledgments)
 - [Support](#-support)
 - [Project Status](#-project-status)
@@ -238,4 +237,5 @@ If you run into issues:
 Features in progress:
 - Google login
 - Image/file upload and analysis
-- Voice input
+- Audio input using @Sarvam.ai
+  
