@@ -1,7 +1,7 @@
 import vertexai
 import httpx
 from vertexai.generative_models import GenerativeModel
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -13,6 +13,7 @@ sys.path.append('/home/' + os.environ.get('USER', '') + '/memory-ai-system')
 from config.settings import PROJECT_ID, LOCATION, GEMINI_MODEL
 from backend.memory import save_memory
 from backend.retrieval import retrieve_memories, get_user_profile
+from backend.files import build_file_part
 
 vertexai.init(project=PROJECT_ID, location=LOCATION)
 app = FastAPI()
@@ -97,6 +98,37 @@ GOOD TONE EXAMPLES:
 
     return prompt
 
+def persist_turn(user_id: str, session_id: str, user_text: str, reply: str):
+    """Save a completed exchange to long-term memory + Firestore. Best-effort."""
+    try:
+        if not is_greeting(user_text):
+            save_memory(
+                user_id=user_id,
+                text=f"User: {user_text} | Assistant: {reply[:200]}",
+                memory_type="episodic",
+                metadata={"session_id": session_id}
+            )
+    except Exception:
+        pass
+
+    try:
+        db = get_db()
+        db.collection("sessions").document(session_id)\
+          .collection("messages").add({
+            "user": user_text,
+            "assistant": reply,
+            "timestamp": datetime.datetime.utcnow()
+        })
+        db.collection("sessions").document(session_id).set({
+            "user_id": user_id,
+            "session_id": session_id,
+            "preview": user_text[:60],
+            "timestamp": datetime.datetime.utcnow()
+        }, merge=True)
+    except Exception:
+        pass
+
+
 @app.post("/chat")
 async def chat(request: ChatRequest):
     try:
@@ -105,40 +137,46 @@ async def chat(request: ChatRequest):
         response = model.generate_content(request.message)
         reply = response.text
 
-        # Save memory
-        try:
-            if not is_greeting(request.message):
-                save_memory(
-                    user_id=request.user_id,
-                    text=f"User: {request.message} | Assistant: {reply[:200]}",
-                    memory_type="episodic",
-                    metadata={"session_id": request.session_id}
-                )
-        except Exception:
-            pass
-
-        # Save to Firestore
-        try:
-            db = get_db()
-            db.collection("sessions").document(request.session_id)\
-              .collection("messages").add({
-                "user": request.message,
-                "assistant": reply,
-                "timestamp": datetime.datetime.utcnow()
-            })
-            db.collection("sessions").document(request.session_id).set({
-                "user_id": request.user_id,
-                "session_id": request.session_id,
-                "preview": request.message[:60],
-                "timestamp": datetime.datetime.utcnow()
-            }, merge=True)
-        except Exception:
-            pass
+        persist_turn(request.user_id, request.session_id, request.message, reply)
 
         return {"reply": reply, "session_id": request.session_id}
 
     except Exception as e:
         return {"reply": "Connection hiccup — try sending again.", "session_id": request.session_id}
+
+
+@app.post("/chat/upload")
+async def chat_upload(
+    user_id: str = Form(...),
+    session_id: str = Form(...),
+    message: str = Form(""),
+    file: UploadFile = File(...),
+):
+    """Chat with an attached file. Supports images, PDFs, Word docs,
+    text/code files, and audio/video — anything build_file_part understands."""
+    try:
+        raw = await file.read()
+        try:
+            part, description = build_file_part(file.filename, file.content_type, raw)
+        except ValueError as e:
+            return {"reply": f"Couldn't read that file — {e}", "session_id": session_id}
+
+        prompt = message.strip() or "Take a look at this file and tell me what's in it."
+
+        # System prompt is built from the text prompt; the file rides along as a part.
+        system_prompt = build_system_prompt(user_id, prompt)
+        model = GenerativeModel(GEMINI_MODEL, system_instruction=system_prompt)
+        response = model.generate_content([prompt, part])
+        reply = response.text
+
+        # What we store as the "user" side of the turn, so the file shows up in history.
+        display_message = f"{message.strip()} {description}".strip()
+        persist_turn(user_id, session_id, display_message, reply)
+
+        return {"reply": reply, "session_id": session_id, "file": description}
+
+    except Exception:
+        return {"reply": "Something broke while reading that file. Try again.", "session_id": session_id}
 
 @app.get("/sessions/{user_id}")
 async def get_sessions(user_id: str):
