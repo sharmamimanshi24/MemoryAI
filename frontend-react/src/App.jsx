@@ -1,7 +1,7 @@
 import ThoughtOfDay from "./ThoughtOfDay"
 import CodeMessage from "./CodeMessage"
 import { useState, useRef, useEffect } from "react"
-import { PencilIcon, Trash2Icon,Palette, MessageSquarePlus, MoreHorizontal } from "lucide-react"
+import { PencilIcon, Trash2Icon,Palette, MessageSquarePlus, MoreHorizontal, Paperclip, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { themes } from "./themes"
@@ -23,10 +23,13 @@ export default function App() {
   const [USER_ID, setUSER_ID] = useState(() => localStorage.getItem("memory_ai_user") || "");
   const [userName, setUserName] = useState(() => localStorage.getItem("memory_ai_user") || "");
   const [input, setInput] = useState("")
+  const [attachedFile, setAttachedFile] = useState(null)
+  const fileInputRef = useRef(null)
   const [loading, setLoading] = useState(false)
   const [sessionId, setSessionId] = useState("session_" + Date.now())
   const [sessions, setSessions] = useState([])
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth <= 768)
+  const [sidebarOpen, setSidebarOpen] = useState(() => !(typeof window !== "undefined" && window.innerWidth <= 768))
   const [memoryCount, setMemoryCount] = useState(0)
   const [themeKey, setThemeKey] = useState(() => {
     const saved = localStorage.getItem("themeKey")
@@ -41,6 +44,20 @@ export default function App() {
   const [openMenuId, setOpenMenuId] = useState(null)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
+
+  useEffect(() => {
+    function onResize() {
+      const mobile = window.innerWidth <= 768
+      setIsMobile(prev => {
+        // collapse the sidebar when crossing into mobile, reopen when going back to desktop
+        if (mobile && !prev) setSidebarOpen(false)
+        if (!mobile && prev) setSidebarOpen(true)
+        return mobile
+      })
+    }
+    window.addEventListener("resize", onResize)
+    return () => window.removeEventListener("resize", onResize)
+  }, [])
 
   useEffect(() => {
     loadSessions()
@@ -64,6 +81,7 @@ export default function App() {
     localStorage.setItem("lastSessionId", newId)
     setMessages([])
     setMemoryCount(0)
+    if (isMobile) setSidebarOpen(false)
     if (reloadSessions) setTimeout(loadSessions, 500)
   }
 
@@ -73,6 +91,7 @@ export default function App() {
     setMessages([])
     setMemoryCount(0)
     setLoading(true)
+    if (isMobile) setSidebarOpen(false)
     try {
       const res = await fetch(`${API_URL}/sessions/${USER_ID}/${sid}/messages`)
       const data = await res.json()
@@ -116,25 +135,41 @@ export default function App() {
   }
 
   async function sendMessage() {
-    if (!input.trim() || loading) return;
+    const file = attachedFile
+    if ((!input.trim() && !file) || loading) return;
     const userMsg = input.trim()
     setInput("")
-    setMessages(prev => [...prev, { role: "user", content: userMsg }])
+    setAttachedFile(null)
+    const bubble = file
+      ? (userMsg ? `${userMsg}\n\n📎 ${file.name}` : `📎 ${file.name}`)
+      : userMsg
+    setMessages(prev => [...prev, { role: "user", content: bubble }])
     setLoading(true)
     setSessions(prev => {
       const exists = prev.find(s => s.session_id === sessionId)
       if (!exists) {
-        const title = userMsg.slice(0, 35) + (userMsg.length > 35 ? "..." : "")
-        return [{ session_id: sessionId, preview: userMsg, title }, ...prev]
+        const previewText = userMsg || file?.name || "New Chat"
+        const title = previewText.slice(0, 35) + (previewText.length > 35 ? "..." : "")
+        return [{ session_id: sessionId, preview: previewText, title }, ...prev]
       }
       return prev
     })
     try {
-      const res = await fetch(`${API_URL}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: USER_ID, message: userMsg, session_id: sessionId }),
-      })
+      let res
+      if (file) {
+        const form = new FormData()
+        form.append("user_id", USER_ID)
+        form.append("session_id", sessionId)
+        form.append("message", userMsg)
+        form.append("file", file)
+        res = await fetch(`${API_URL}/chat/upload`, { method: "POST", body: form })
+      } else {
+        res = await fetch(`${API_URL}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: USER_ID, message: userMsg, session_id: sessionId }),
+        })
+      }
       const data = await res.json()
       setMessages(prev => [...prev, { role: "assistant", content: data.reply }])
       setMemoryCount(c => c + 1)
@@ -190,7 +225,7 @@ export default function App() {
         <AnimatePresence>
           {sidebarOpen && (
             <motion.div initial={{ x: -270, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -270, opacity: 0 }} transition={{ duration: 0.3 }}
-              style={{ width: "255px", minWidth: "255px", ...glassStyle(t), borderRadius: "0 20px 20px 0", borderLeft: "none", display: "flex", flexDirection: "column", overflow: "hidden", zIndex: 10 }}>
+              style={{ width: isMobile ? "82vw" : "255px", minWidth: isMobile ? "0" : "255px", maxWidth: "300px", ...glassStyle(t), borderRadius: "0 20px 20px 0", borderLeft: "none", display: "flex", flexDirection: "column", overflow: "hidden", zIndex: 40, position: isMobile ? "fixed" : "relative", top: 0, left: 0, height: "100vh" }}>
 
               <div style={{ padding: "18px 16px 12px", borderBottom: `1px solid ${t.border}` }}>
                 <h2 style={{ fontSize: "1rem", fontWeight: 800, margin: "0 0 2px" }}>
@@ -287,6 +322,17 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        {/* Mobile backdrop — tap to close the drawer */}
+        <AnimatePresence>
+          {isMobile && sidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setSidebarOpen(false)}
+              style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 30 }}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Main */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative" }}>
 
@@ -302,7 +348,7 @@ export default function App() {
 
 
           {/* Header */}
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} style={{ textAlign: "center", padding: "16px 0", zIndex: 5 }}>
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} style={{ textAlign: "center", padding: isMobile ? "14px 54px 10px" : "16px 0", zIndex: 5 }}>
             <h1 style={{ fontSize: "clamp(1.3rem,2.5vw,1.9rem)", fontWeight: 900, margin: "0 0 6px" }}>
               <span style={gradStyle}>Memory AI </span>
             </h1>
@@ -364,7 +410,7 @@ export default function App() {
             </div>
 
             {/* Messages */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", maxWidth: "820px", width: "100%", margin: "0 auto" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "14px 12px" : "20px", display: "flex", flexDirection: "column", gap: "14px", maxWidth: "820px", width: "100%", margin: "0 auto" }}>
               <AnimatePresence mode="wait">
                 {messages.length === 0 ? (
                   <ThoughtOfDay key="thought" t={t} />
@@ -374,7 +420,7 @@ export default function App() {
                       <motion.div key={i} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
                         style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
                         <div style={{
-                          maxWidth: "75%", padding: "12px 16px",
+                          maxWidth: isMobile ? "90%" : "75%", padding: "12px 16px",
                           borderRadius: msg.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
                           background: msg.role === "user" ? t.userBubble : (t.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.72)"),
                           backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
@@ -407,17 +453,48 @@ export default function App() {
             </div>
 
             {/* Input */}
-            <div style={{ padding: "13px 16px", borderTop: `1px solid ${t.border}`, display: "flex", gap: "10px", background: t.mode === "dark" ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.35)", backdropFilter: "blur(10px)", maxWidth: "820px", width: "100%", margin: "0 auto", position: "relative" }}>
-              <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()}
-                placeholder="Type a message..."
-                style={{ flex: 1, background: t.inputBg, backdropFilter: "blur(10px)", border: `1px solid ${t.border}`, borderRadius: "14px", padding: "12px 16px", color: t.text, fontSize: "0.9rem", outline: "none" }}
-                onFocus={e => e.target.style.borderColor = t.accent}
-                onBlur={e => e.target.style.borderColor = t.border}
-              />
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={sendMessage} disabled={loading}
-                style={{ ...gs, borderRadius: "14px", padding: "12px 22px", color: t.text, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontSize: "0.9rem", opacity: loading ? 0.7 : 1 }}>
-                {loading ? "..." : "Send ✦"}
-              </motion.button>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: isMobile ? "10px 12px" : "13px 16px", borderTop: `1px solid ${t.border}`, background: t.mode === "dark" ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.35)", backdropFilter: "blur(10px)", maxWidth: "820px", width: "100%", margin: "0 auto", position: "relative" }}>
+              {attachedFile && (
+                <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                  style={{ display: "flex", alignItems: "center", gap: "8px", alignSelf: "flex-start", ...gs, borderRadius: "12px", padding: "6px 10px", maxWidth: "100%" }}>
+                  <Paperclip size={14} color={t.accent} />
+                  <span style={{ color: t.text, fontSize: "0.78rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: isMobile ? "150px" : "260px" }}>
+                    {attachedFile.name}
+                  </span>
+                  <span style={{ color: t.subtext, fontSize: "0.68rem" }}>
+                    {(attachedFile.size / 1024).toFixed(0)} KB
+                  </span>
+                  <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => setAttachedFile(null)}
+                    style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 0, color: t.subtext }}>
+                    <X size={14} />
+                  </motion.button>
+                </motion.div>
+              )}
+              <div style={{ display: "flex", gap: isMobile ? "8px" : "10px" }}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".txt,.md,.csv,.json,.xml,.yaml,.yml,.html,.css,.js,.jsx,.ts,.tsx,.py,.java,.c,.cpp,.go,.rs,.rb,.php,.sh,.sql,.log,.pdf,.docx,image/*,audio/*,video/*"
+                  style={{ display: "none" }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) setAttachedFile(f); e.target.value = "" }}
+                />
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  onClick={() => fileInputRef.current?.click()} disabled={loading}
+                  title="Attach a file"
+                  style={{ ...gs, borderRadius: "14px", padding: isMobile ? "12px 12px" : "12px 14px", color: t.text, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", opacity: loading ? 0.7 : 1 }}>
+                  <Paperclip size={18} />
+                </motion.button>
+                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()}
+                  placeholder={attachedFile ? "Add a note..." : "Type a message..."}
+                  style={{ flex: 1, minWidth: 0, background: t.inputBg, backdropFilter: "blur(10px)", border: `1px solid ${t.border}`, borderRadius: "14px", padding: "12px 16px", color: t.text, fontSize: "0.9rem", outline: "none" }}
+                  onFocus={e => e.target.style.borderColor = t.accent}
+                  onBlur={e => e.target.style.borderColor = t.border}
+                />
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={sendMessage} disabled={loading}
+                  style={{ ...gs, borderRadius: "14px", padding: isMobile ? "12px 16px" : "12px 22px", color: t.text, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontSize: "0.9rem", opacity: loading ? 0.7 : 1, whiteSpace: "nowrap" }}>
+                  {loading ? "..." : (isMobile ? "✦" : "Send ✦")}
+                </motion.button>
+              </div>
             </div>
           </motion.div>
 

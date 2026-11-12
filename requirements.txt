@@ -5,3 +5,5 @@ google-cloud-aiplatform
 vertexai
 pydantic
 httpx
+python-multipart
+python-docx

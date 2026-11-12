@@ -6,3 +6,5 @@ vertexai
 python-dotenv
 pydantic
 httpx
+python-multipart
+python-docx

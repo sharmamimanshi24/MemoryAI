@@ -34,6 +34,7 @@ Most AI chatbots forget everything the moment you close the tab. **Memory AI** i
 
 - 🧠 **Persistent Memory** — remembers your projects, preferences, and context across all sessions
 - 🔍 **Semantic Search** — finds relevant memories using meaning, not just keywords
+- 📎 **Multi-format File Upload** — attach images, PDFs, Word docs, and text/code files (and audio/video) and ask questions about them
 - 💻 **Code Highlighting** — syntax highlighting for Python, JavaScript, HTML, SQL, Bash, and more
 - 🎨 **Choose your own Themes** — 5 dark, 5 light with glassmorphic UI design
 - 💡 **Thought of the Day** — fresh quote on every new session
@@ -187,6 +188,7 @@ GEMINI_MODEL = "gemini-2.0-flash-001"
 | Endpoint | Method | Description |
 |---|---|---|
 | `/chat` | POST | Send message, get AI reply |
+| `/chat/upload` | POST | Send a message with an attached file (`multipart/form-data`), get AI reply |
 | `/sessions/{user_id}` | GET | List all sessions |
 | `/sessions/{user_id}/{session_id}/messages` | GET | Load session history |
 | `/sessions/{user_id}/{session_id}` | DELETE | Delete session |
@@ -236,6 +238,9 @@ If you run into issues:
 
 Features in progress:
 - Google login
-- Image/file upload and analysis
 - Audio input using @Sarvam.ai
+
+Recently shipped:
+- ✅ Image/file upload and analysis (images, PDFs, Word docs, text/code, audio/video)
+- ✅ Mobile-responsive chat UI
   
